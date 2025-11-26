@@ -1,0 +1,120 @@
+# ============================================================================
+# EOC Log Analyzer - Environment Configuration Template
+# ============================================================================
+# Copy this content to a new file named .env and update with your actual values
+# Do NOT commit the .env file to version control - it contains sensitive data!
+#
+# NOTE: This application does NOT connect directly to Oracle Database.
+# All database operations go through the eoc-database-api service.
+
+# ============================================================================
+# DATABASE API CONFIGURATION (Required)
+# ============================================================================
+
+# Database API Service URL (where your FastAPI database service is running)
+DATABASE_API_URL=http://localhost:8001
+
+# Database API Authentication (optional but recommended for production)
+DATABASE_API_KEY=your-database-api-key
+
+# API Connection Settings
+DATABASE_API_TIMEOUT=30
+
+# ============================================================================
+# DATABRICKS CLAUDE CONFIGURATION (Required)
+# ============================================================================
+
+LLM_PROVIDER=databricks
+
+# Databricks Token (Get from: Databricks User Settings → Access Tokens)
+DATABRICKS_TOKEN=dapi-your-token-here
+
+# Databricks Claude Endpoint (pre-configured for your workspace)
+DATABRICKS_BASE_URL=https://dbc-4ee5e339-1e79.cloud.databricks.com/serving-endpoints/databricks-claude-sonnet-4
+
+# Model Name
+CLAUDE_MODEL=databricks-claude-sonnet-4
+LLM_MAX_TOKENS=4096
+LLM_TEMPERATURE=0.0
+
+# ============================================================================
+# LANGSMITH CONFIGURATION (Optional - for monitoring)
+# ============================================================================
+
+# Enable LangSmith tracing (set to true to enable)
+LANGCHAIN_TRACING_V2=true
+
+# LangSmith API Key (Get from: https://smith.langchain.com/)
+LANGCHAIN_API_KEY=lsv2_pt_your-api-key-here
+
+# LangSmith Project Name
+LANGCHAIN_PROJECT=eoc-log-analyzer
+
+# ============================================================================
+# APPLICATION CONFIGURATION
+# ============================================================================
+
+# Application Info
+APP_NAME=Oracle Log Analyzer
+APP_VERSION=1.0.0
+ENVIRONMENT=development
+
+# Logging Configuration
+# Options: DEBUG, INFO, WARNING, ERROR, CRITICAL
+LOG_LEVEL=INFO
+
+# ============================================================================
+# PLAN STORAGE CONFIGURATION
+# ============================================================================
+
+# Plan caching and versioning
+PLAN_CACHE_TTL_SECONDS=3600
+MAX_PLAN_VERSIONS=5
+
+# Plan success threshold (0.0-1.0) - plans below this success rate get replaced
+PLAN_SUCCESS_THRESHOLD=0.7
+
+# ============================================================================
+# VECTOR SEARCH CONFIGURATION (Optional)
+# ============================================================================
+
+# Enable/Disable vector search for semantic document retrieval
+# ⚠️  IMPORTANT: This only controls QUERYING the vector DB (~$0.0001/query)
+# ⚠️  Generating embeddings (~$0.01) always requires user approval via UI
+# Set to false to always use file-based search (free, no costs)
+ENABLE_VECTOR_SEARCH=false
+
+# ============================================================================
+# GITLAB INTEGRATION CONFIGURATION (Optional)
+# ============================================================================
+
+# Enable/Disable GitLab code analysis (set to false to skip GitLab entirely)
+ENABLE_GITLAB=false
+
+# GitLab URL (e.g., https://gitlab.com or your self-hosted instance)
+GITLAB_URL=https://gitlab.ftr.com
+
+# GitLab Personal Access Token (create at: GitLab -> Settings -> Access Tokens)
+# Required scopes: api, read_repository
+GITLAB_TOKEN=your_gitlab_token_here
+
+# GitLab Project ID (find in project settings or URL)
+GITLAB_PROJECT_ID=396
+
+# GitLab API Settings
+GITLAB_API_TIMEOUT=30
+GITLAB_MAX_FILE_SIZE=1048576
+
+# ============================================================================
+# MONITORING & PERFORMANCE CONFIGURATION
+# ============================================================================
+
+# Enable application metrics collection
+ENABLE_METRICS=true
+
+# Metrics server port
+METRICS_PORT=8080
+
+# Health check interval in seconds
+HEALTH_CHECK_INTERVAL=60
+

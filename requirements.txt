@@ -1,0 +1,39 @@
+# Oracle Log Analyzer - AI Agents Requirements
+# Updated to use FastAPI database service instead of direct Oracle access
+
+# Core LangChain/LangGraph - Updated to compatible versions
+langchain>=0.1.0
+langchain-community>=0.0.20
+langchain-core>=0.1.42
+langgraph>=0.0.35
+
+# LLM integrations
+langchain-openai>=0.0.5
+langchain-databricks>=0.1.0
+openai>=1.6.1
+
+# Databricks SDK (includes vector search)
+databricks-sdk>=0.70.0
+
+# HTTP client for database API
+httpx==0.25.2
+
+# Environment and configuration
+python-dotenv==1.0.0
+pydantic==2.5.3
+pydantic-settings==2.1.0
+
+# Utilities
+rich==13.7.0
+loguru==0.7.2
+tenacity==8.2.3
+
+# GitLab integration (optional)
+requests==2.31.0
+
+# Web UI framework
+streamlit>=1.31.0
+
+# Web framework (optional - for API interface)
+fastapi==0.104.1
+uvicorn==0.24.0
