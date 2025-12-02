@@ -53,10 +53,20 @@ class AppConfig(BaseSettings):
     max_plan_versions: int = Field(default=5, env="MAX_PLAN_VERSIONS")
     plan_success_threshold: float = Field(default=0.7, env="PLAN_SUCCESS_THRESHOLD")
     
-    # Vector Search (Optional - requires Databricks Vector Search)
+    # Vector Search Configuration
     # ⚠️  Querying vector search is cheap (~$0.0001/query)
     # ⚠️  Generating embeddings is expensive (~$0.01) and requires user approval
-    enable_vector_search: bool = Field(default=False, env="ENABLE_VECTOR_SEARCH")
+    enable_vector_search: bool = Field(default=True, env="ENABLE_VECTOR_SEARCH")
+    
+    # Vector DB Backend: "chroma" (local) or "databricks" (cloud)
+    vector_backend: Literal["chroma", "databricks"] = Field(default="chroma", env="VECTOR_BACKEND")
+    
+    # ChromaDB Settings (for local vector storage)
+    chroma_db_path: str = Field(default="./data/chroma_db", env="CHROMA_DB_PATH")
+    chroma_collection_name: str = Field(default="eoc_knowledge", env="CHROMA_COLLECTION_NAME")
+    
+    # Databricks Vector Search Settings (for cloud deployment)
+    databricks_vector_index: str = Field(default="ordercare_knowledge_index", env="DATABRICKS_VECTOR_INDEX")
     
     # GitLab Integration (Optional)
     enable_gitlab: bool = Field(default=False, env="ENABLE_GITLAB")

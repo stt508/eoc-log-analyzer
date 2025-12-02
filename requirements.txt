@@ -15,6 +15,10 @@ openai>=1.6.1
 # Databricks SDK (includes vector search)
 databricks-sdk>=0.70.0
 
+# Vector Database - ChromaDB (local) or Databricks (cloud)
+chromadb>=0.4.22
+sentence-transformers>=2.3.1
+
 # HTTP client for database API
 httpx==0.25.2
 

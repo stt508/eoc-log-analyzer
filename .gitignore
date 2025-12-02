@@ -53,6 +53,11 @@ htmlcov/
 *.sqlite
 *.sqlite3
 
+# Vector Database
+data/
+chroma_db/
+*.chroma
+
 # Streamlit
 .streamlit/secrets.toml
 

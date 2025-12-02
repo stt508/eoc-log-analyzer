@@ -2,10 +2,11 @@
 Knowledge Server Tools (Vector Search Edition)
 
 Provides LangChain tools for agents to query system documentation via vector search.
-Falls back to file-based search if vector DB is unavailable.
+Supports multiple backends:
+- ChromaDB (local) - Free, runs on your machine
+- Databricks Vector Search (cloud) - Scalable, requires Databricks
 
-NOTE: Vector embeddings are generated in a separate Databricks project (eoc-vector-embeddings).
-      This file only QUERIES the vector index via REST API.
+Falls back to file-based search if vector DB is unavailable.
 """
 
 from typing import List, Dict, Any, Optional
@@ -15,16 +16,20 @@ import requests
 
 from config import config
 
+# Vector backends
+from .chroma_vector_manager import get_chroma_manager
+
 # Fallback to file-based search
 from .mcp_server import knowledge_server
 
 
 def search_knowledge_base(query: str, num_results: int = 5) -> Optional[str]:
     """
-    Search knowledge base using Databricks Vector Search REST API
+    Search knowledge base using vector search (ChromaDB or Databricks)
     
-    ⚠️  COST: ~$0.0001 per query (controlled by ENABLE_VECTOR_SEARCH config)
-    ⚠️  REQUIRES: Vector index to be set up in Databricks (see eoc-vector-embeddings project)
+    Backend is controlled by VECTOR_BACKEND config:
+    - "chroma" (default): Local ChromaDB - FREE, no cloud costs
+    - "databricks": Databricks Vector Search - ~$0.0001/query
     
     Args:
         query: Search query
@@ -39,15 +44,65 @@ def search_knowledge_base(query: str, num_results: int = 5) -> Optional[str]:
         return None
     
     try:
+        # Route to appropriate backend
+        if config.app.vector_backend == "chroma":
+            return _search_chroma(query, num_results)
+        elif config.app.vector_backend == "databricks":
+            return _search_databricks(query, num_results)
+        else:
+            logger.warning(f"Unknown vector backend: {config.app.vector_backend}")
+            return None
+    
+    except Exception as e:
+        logger.warning(f"Vector search failed: {e}")
+        return None
+
+
+def _search_chroma(query: str, num_results: int = 5) -> Optional[str]:
+    """Search using local ChromaDB"""
+    try:
+        chroma = get_chroma_manager()
+        
+        # Check if collection has data
+        stats = chroma.get_collection_stats()
+        if stats.get("total_documents", 0) == 0:
+            logger.warning("⚠️  ChromaDB is empty. Generate embeddings first.")
+            return None
+        
+        # Search
+        logger.debug(f"🔍 Searching ChromaDB: '{query[:50]}...'")
+        results = chroma.search(query, num_results=num_results, score_threshold=0.5)
+        
+        if not results:
+            logger.debug(f"⚠️  No vector matches in ChromaDB")
+            return None
+        
+        # Combine matched chunks
+        combined = "\n\n---\n\n".join([
+            f"**Source:** {r['source_file']} (chunk {r['chunk_index']}, score: {r['score']:.2f})\n\n{r['content']}"
+            for r in results
+        ])
+        
+        logger.debug(f"✅ ChromaDB returned {len(results)} results")
+        return combined
+    
+    except Exception as e:
+        logger.warning(f"ChromaDB search failed: {e}")
+        return None
+
+
+def _search_databricks(query: str, num_results: int = 5) -> Optional[str]:
+    """Search using Databricks Vector Search REST API"""
+    try:
         # Extract workspace URL from LLM endpoint URL
         workspace_url = config.llm.databricks_base_url.rsplit("/serving-endpoints/", 1)[0]
         
         # Vector Search API endpoint
-        index_name = "ordercare_knowledge_index"  # From eoc-vector-embeddings setup
+        index_name = config.app.databricks_vector_index
         api_url = f"{workspace_url}/api/2.0/vector-search/indexes/{index_name}/query"
         
         # Query the vector index
-        logger.debug(f"🔍 Querying vector index: '{query[:50]}...'")
+        logger.debug(f"🔍 Querying Databricks vector index: '{query[:50]}...'")
         
         response = requests.post(
             api_url,
@@ -64,14 +119,14 @@ def search_knowledge_base(query: str, num_results: int = 5) -> Optional[str]:
         )
         
         if response.status_code != 200:
-            logger.warning(f"Vector search API error: {response.status_code} - {response.text}")
+            logger.warning(f"Databricks Vector Search API error: {response.status_code}")
             return None
         
         data = response.json()
         results = data.get("result", {}).get("data_array", [])
         
         if not results:
-            logger.debug(f"⚠️  No vector matches for: '{query[:50]}...'")
+            logger.debug(f"⚠️  No vector matches in Databricks")
             return None
         
         # Parse results: [doc_id, source_file, content, chunk_index, score]
@@ -92,13 +147,13 @@ def search_knowledge_base(query: str, num_results: int = 5) -> Optional[str]:
                 f"**Source:** {r['source_file']} (chunk {r['chunk_index']}, score: {r['score']:.2f})\n\n{r['content']}"
                 for r in parsed_results
             ])
-            logger.debug(f"✅ Vector search returned {len(parsed_results)} results")
+            logger.debug(f"✅ Databricks returned {len(parsed_results)} results")
             return combined
         
         return None
     
     except Exception as e:
-        logger.warning(f"Vector search failed: {e}")
+        logger.warning(f"Databricks Vector Search failed: {e}")
         return None
 
 

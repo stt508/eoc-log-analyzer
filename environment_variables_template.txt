@@ -79,10 +79,23 @@ PLAN_SUCCESS_THRESHOLD=0.7
 # ============================================================================
 
 # Enable/Disable vector search for semantic document retrieval
-# ⚠️  IMPORTANT: This only controls QUERYING the vector DB (~$0.0001/query)
-# ⚠️  Generating embeddings (~$0.01) always requires user approval via UI
-# Set to false to always use file-based search (free, no costs)
-ENABLE_VECTOR_SEARCH=false
+# Set to true to use vector search, false for file-based search only
+ENABLE_VECTOR_SEARCH=true
+
+# Vector Database Backend
+# Options: "chroma" (local, FREE) or "databricks" (cloud, costs apply)
+VECTOR_BACKEND=chroma
+
+# ChromaDB Settings (for local vector storage)
+# Path where ChromaDB will store embeddings
+CHROMA_DB_PATH=./data/chroma_db
+
+# ChromaDB collection name
+CHROMA_COLLECTION_NAME=eoc_knowledge
+
+# Databricks Vector Search Settings (for cloud deployment)
+# Only used when VECTOR_BACKEND=databricks
+DATABRICKS_VECTOR_INDEX=ordercare_knowledge_index
 
 # ============================================================================
 # GITLAB INTEGRATION CONFIGURATION (Optional)

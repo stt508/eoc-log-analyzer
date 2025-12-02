@@ -25,6 +25,9 @@ from config import config
 from tools.database_api_client import api_client
 from agents import coordinator
 from tools.knowledge_server import knowledge_server
+from tools.knowledge_server.chroma_vector_manager import get_chroma_manager
+import subprocess
+import os
 
 # Custom CSS - Compact layout with toolbar space
 st.markdown("""
@@ -112,15 +115,26 @@ if 'code_loaded' not in st.session_state:
     st.session_state.code_loaded = False
 
 # Ultra-compact header - single row
-col1, col2, col3, col4, col5, col6 = st.columns([2, 1, 1, 1, 1, 1])
+col1, col2, col3, col4, col5 = st.columns([2, 1.5, 1, 1, 1])
 with col1:
     st.markdown("### 🔍 EOC Log Analyzer")
 with col2:
     kb_stats = knowledge_server.get_stats()
     st.caption(f"📚 {kb_stats['total_sections']} KB sections" if kb_stats['total_sections'] > 0 else "📚 No KB")
 with col3:
+    # Show vector DB status with backend info
     if config.app.enable_vector_search:
-        st.caption("🔍 Vector ✅")
+        backend = config.app.vector_backend
+        if backend == "chroma":
+            try:
+                chroma = get_chroma_manager()
+                stats = chroma.get_collection_stats()
+                doc_count = stats.get('total_documents', 0)
+                st.caption(f"🔍 ChromaDB: {doc_count} docs")
+            except:
+                st.caption("🔍 ChromaDB ⚠️")
+        else:
+            st.caption(f"🔍 Databricks ✅")
     else:
         st.caption("🔍 Vector ⚠️")
 with col4:
@@ -130,13 +144,75 @@ with col4:
         st.caption("💻 GitLab ⚠️")
 with col5:
     st.caption(f"v{config.app.app_version}")
-with col6:
-    # Vector embeddings are now generated in Databricks (eoc-vector-embeddings project)
-    # See: C:\Code\eoc-vector-embeddings\README.md for setup
-    if config.app.enable_vector_search:
-        st.caption("🔍 Vector ✅")
+
+# Sidebar for vector embeddings management
+with st.sidebar:
+    st.markdown("### ⚙️ Settings")
+    
+    st.markdown("---")
+    st.markdown("### 🔍 Vector Search")
+    
+    # Show current backend and status
+    st.caption(f"**Backend:** {config.app.vector_backend.upper()}")
+    st.caption(f"**Enabled:** {'✅' if config.app.enable_vector_search else '⚠️ Disabled'}")
+    
+    if config.app.vector_backend == "chroma":
+        try:
+            chroma = get_chroma_manager()
+            stats = chroma.get_collection_stats()
+            st.caption(f"**Documents:** {stats.get('total_documents', 0)}")
+            st.caption(f"**Status:** {stats.get('status', 'unknown')}")
+        except Exception as e:
+            st.caption(f"**Status:** Error - {str(e)[:50]}")
+    
+    st.markdown("---")
+    
+    # Embedding generation
+    st.markdown("### 📦 Generate Embeddings")
+    
+    if config.app.vector_backend == "chroma":
+        st.caption("Generate vector embeddings from knowledge base files and store in ChromaDB.")
+        
+        # Warning about time
+        st.warning("⚠️ This process can take several minutes. The app will be unresponsive during generation.")
+        
+        if st.button("🚀 Generate Embeddings", use_container_width=True, type="primary"):
+            with st.spinner("🔄 Generating embeddings... Please wait..."):
+                try:
+                    # Run the embedding generation script
+                    script_path = os.path.join(os.path.dirname(__file__), "generate_embeddings.py")
+                    
+                    # Run in subprocess with auto-confirm
+                    result = subprocess.run(
+                        [sys.executable, script_path],
+                        input="yes\nyes\n",  # Auto-confirm prompts
+                        capture_output=True,
+                        text=True,
+                        timeout=600  # 10 minute timeout
+                    )
+                    
+                    if result.returncode == 0:
+                        st.success("✅ Embeddings generated successfully!")
+                        # Show output
+                        if result.stdout:
+                            with st.expander("📋 Generation Log"):
+                                st.code(result.stdout)
+                        st.rerun()
+                    else:
+                        st.error(f"❌ Generation failed: {result.stderr}")
+                
+                except subprocess.TimeoutExpired:
+                    st.error("❌ Generation timed out (>10 minutes)")
+                except Exception as e:
+                    st.error(f"❌ Error: {str(e)}")
     else:
-        st.caption("🔍 Vector ⚠️")
+        st.info("📍 Using Databricks Vector Search. Embeddings are managed in the `eoc-vector-embeddings` project.")
+    
+    st.markdown("---")
+    st.markdown("### 💡 Tips")
+    st.caption("• Regenerate embeddings after updating knowledge base files")
+    st.caption("• Enable vector search in `.env` file")
+    st.caption("• Switch backends via `VECTOR_BACKEND` config")
 
 # New search form with dropdown + single text input
 with st.form("search_form"):
